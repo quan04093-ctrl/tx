@@ -216,26 +216,29 @@
             animation: floatUpFade 3.2s ease-out forwards;
         }
 
-        /* ========== AUTO-ROTATE LANDSCAPE FOR MOBILE PORTRAIT ========== */
-        /* When phone is held vertically (portrait) on small screens, rotate the entire page */
-        @media screen and (max-width: 1024px) and (orientation: portrait) {
-            html {
-                overflow: hidden;
-            }
-            body {
-                transform: rotate(90deg);
-                transform-origin: top left;
-                width: 100vh !important;
-                height: 100vw !important;
-                position: absolute;
-                top: 0;
-                left: 100vw;
-                overflow-x: auto;
-                overflow-y: hidden;
-            }
+        /* ========== MOBILE FIT-TO-SCREEN (NO SCROLL) ========== */
+        /* On mobile: lock viewport, scale content to fit perfectly */
+        html.mobile-fit, html.mobile-fit body {
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        html.mobile-fit body {
+            display: flex !important;
+            align-items: flex-start !important;
+            justify-content: flex-start !important;
+            min-height: unset !important;
+            height: 100% !important;
+            width: 100% !important;
+        }
+        html.mobile-fit #mobileScaleWrapper {
+            transform-origin: top left;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
-        /* Rotate prompt overlay - shows briefly when entering portrait */
+        /* Rotate prompt overlay */
         #rotateOverlay {
             display: none;
             position: fixed;
@@ -274,36 +277,97 @@
     </div>
 
     <script>
-        // Auto-rotate: Show overlay briefly then auto-dismiss
+        // MOBILE FIT-TO-SCREEN: rotate (if portrait) + scale to fit — NO scrolling
         (function() {
             const overlay = document.getElementById('rotateOverlay');
             let overlayTimer = null;
+            const CONTENT_WIDTH = 1080; // design width of the game layout
+            const CONTENT_HEIGHT = 620; // approximate design height
 
-            function checkOrientation() {
+            function applyMobileFit() {
+                const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+                const smallScreen = Math.min(window.innerWidth, window.innerHeight) <= 1024;
+
+                if (!isMobile && !smallScreen) {
+                    // Desktop — remove mobile classes, reset
+                    document.documentElement.classList.remove('mobile-fit');
+                    const wrapper = document.getElementById('mobileScaleWrapper');
+                    if (wrapper) {
+                        wrapper.style.transform = '';
+                        wrapper.style.width = '';
+                        wrapper.style.height = '';
+                    }
+                    document.body.style.transform = '';
+                    document.body.style.width = '';
+                    document.body.style.height = '';
+                    document.body.style.position = '';
+                    document.body.style.left = '';
+                    overlay.style.display = 'none';
+                    return;
+                }
+
+                document.documentElement.classList.add('mobile-fit');
+
                 const isPortrait = window.innerHeight > window.innerWidth;
-                const isSmallScreen = Math.min(window.innerWidth, window.innerHeight) <= 1024;
+                let screenW, screenH;
 
-                if (isPortrait && isSmallScreen) {
-                    // Show rotate hint overlay for 3 seconds then hide
+                if (isPortrait) {
+                    // Portrait phone: rotate body 90°, swap dimensions
+                    screenW = window.innerHeight;
+                    screenH = window.innerWidth;
+                    document.body.style.transform = 'rotate(90deg)';
+                    document.body.style.transformOrigin = 'top left';
+                    document.body.style.width = screenW + 'px';
+                    document.body.style.height = screenH + 'px';
+                    document.body.style.position = 'absolute';
+                    document.body.style.left = screenH + 'px';
+                    document.body.style.top = '0';
+
+                    // Show rotate hint
                     overlay.style.display = 'flex';
                     clearTimeout(overlayTimer);
                     overlayTimer = setTimeout(function() {
                         overlay.style.display = 'none';
-                    }, 3000);
+                    }, 2500);
                 } else {
+                    // Landscape phone: no rotation needed
+                    screenW = window.innerWidth;
+                    screenH = window.innerHeight;
+                    document.body.style.transform = '';
+                    document.body.style.width = '100%';
+                    document.body.style.height = '100%';
+                    document.body.style.position = '';
+                    document.body.style.left = '';
                     overlay.style.display = 'none';
                     clearTimeout(overlayTimer);
                 }
+
+                // Scale content to fit screen perfectly
+                const wrapper = document.getElementById('mobileScaleWrapper');
+                if (wrapper) {
+                    const scaleX = screenW / CONTENT_WIDTH;
+                    const scaleY = screenH / CONTENT_HEIGHT;
+                    const scale = Math.min(scaleX, scaleY);
+                    wrapper.style.transform = 'scale(' + scale + ')';
+                    wrapper.style.width = CONTENT_WIDTH + 'px';
+                    wrapper.style.height = CONTENT_HEIGHT + 'px';
+
+                    // Center if there's leftover space
+                    const offsetX = Math.max(0, (screenW - CONTENT_WIDTH * scale) / 2);
+                    const offsetY = Math.max(0, (screenH - CONTENT_HEIGHT * scale) / 2);
+                    wrapper.style.left = offsetX + 'px';
+                    wrapper.style.top = offsetY + 'px';
+                }
             }
 
-            // Check on load and orientation change
-            checkOrientation();
-            window.addEventListener('resize', checkOrientation);
+            // Run on load + resize + orientation change
+            applyMobileFit();
+            window.addEventListener('resize', applyMobileFit);
             window.addEventListener('orientationchange', function() {
-                setTimeout(checkOrientation, 200);
+                setTimeout(applyMobileFit, 300);
             });
 
-            // Tap overlay to dismiss early
+            // Tap overlay to dismiss
             overlay.addEventListener('click', function() {
                 overlay.style.display = 'none';
                 clearTimeout(overlayTimer);
@@ -312,7 +376,8 @@
     </script>
 
     <!-- STRICT HORIZONTAL WRAPPER (min-w-[1060px] keeps horizontal layout intact on all screens) -->
-    <div class="max-w-[1360px] min-w-[1060px] w-full mx-auto flex flex-col gap-3 my-auto">
+    <div id="mobileScaleWrapper">
+    <div class="max-w-[1360px] min-w-[1060px] w-full mx-auto flex flex-col gap-3 my-auto" style="padding: 10px;">
 
         <!-- ==================== HEADER BAR ==================== -->
         <header class="w-full flex items-center justify-between gap-3 bg-slate-900/95 border-2 border-amber-500/40 rounded-2xl px-4 py-2 shadow-2xl">
@@ -741,6 +806,7 @@
         </footer>
 
     </div>
+    </div> <!-- /mobileScaleWrapper -->
 
     <!-- ==================== MODAL VAY CHIP KHI HẾT VỐN ==================== -->
     <div id="loanModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
