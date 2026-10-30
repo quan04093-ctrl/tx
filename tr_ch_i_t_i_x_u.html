@@ -1689,6 +1689,130 @@
             document.getElementById('cycleSecondText').textContent = `${current}s`;
         }
 
+        /* ==============================================================
+           HỆ THỐNG SINH SỐ NGẪU NHIÊN CHUẨN CASINO (SOI CẦU KHÓ ĐOÁN)
+           Mô phỏng sòng bạc thật: Cầu Bệt, Cầu Đảo 1-1, Cầu 2-2, 
+           Cầu Sát Nút 10/11 điểm, Nổ Bão x10, và nhịp Hỗn Loạn (Chaos)
+        ============================================================== */
+        const casinoEngine = {
+            currentPattern: 'CHAOS',
+            patternRemaining: 0,
+            lastSide: null,
+            consecutiveCount: 0
+        };
+
+        // Hàm ngẫu nhiên bảo mật mật mã học (Cryptographic PRNG)
+        function secureRandom() {
+            try {
+                if (window.crypto && window.crypto.getRandomValues) {
+                    const buf = new Uint32Array(1);
+                    window.crypto.getRandomValues(buf);
+                    return buf[0] / (0xFFFFFFFF + 1);
+                }
+            } catch (e) {}
+            return Math.random();
+        }
+
+        // Lắc 3 viên xúc xắc ngẫu nhiên tự nhiên
+        function rollRandomRawDice() {
+            return [
+                Math.floor(secureRandom() * 6) + 1,
+                Math.floor(secureRandom() * 6) + 1,
+                Math.floor(secureRandom() * 6) + 1
+            ];
+        }
+
+        // Tạo xúc xắc tự nhiên theo cửa mong muốn
+        function rollDiceForTargetSide(targetSide) {
+            let d;
+            let attempts = 0;
+            while (attempts < 60) {
+                d = rollRandomRawDice();
+                const sum = d[0] + d[1] + d[2];
+                if (targetSide === 'TAI' && sum >= 11) return d;
+                if (targetSide === 'XIU' && sum <= 10) return d;
+                attempts++;
+            }
+            return d || [3, 4, 4];
+        }
+
+        // Bộ tạo cầu cờ bạc thực tế siêu ngẫu nhiên & khó đoán
+        function generateCasinoRoll() {
+            // Khi hết nhịp cầu, tự động chuyển sang một dạng cầu mới
+            if (casinoEngine.patternRemaining <= 0) {
+                const availablePatterns = ['CHAOS', 'CHAOS', 'PINGPONG', 'BET_TAI', 'BET_XIU', 'DOUBLE', 'CLUTCH'];
+                casinoEngine.currentPattern = availablePatterns[Math.floor(secureRandom() * availablePatterns.length)];
+                // Nhịp cầu kéo dài từ 3 đến 7 ván
+                casinoEngine.patternRemaining = Math.floor(secureRandom() * 5) + 3;
+            }
+
+            casinoEngine.patternRemaining--;
+            const rnd = secureRandom();
+
+            // 1. Tỉ lệ nổ BÃO ngẫu nhiên (~2.8% như sòng bạc thật)
+            if (rnd < 0.028) {
+                const tripleNum = Math.floor(secureRandom() * 6) + 1;
+                const tripleRoll = [tripleNum, tripleNum, tripleNum];
+                const sum = tripleNum * 3;
+                casinoEngine.lastSide = sum >= 11 ? 'TAI' : 'XIU';
+                return tripleRoll;
+            }
+
+            // 2. Tỉ lệ bẻ cầu bất ngờ (20% gãy cầu làm người chơi khó đoán)
+            const isBreak = secureRandom() < 0.20;
+
+            let targetSide = null;
+            if (casinoEngine.currentPattern === 'BET_TAI') {
+                targetSide = isBreak ? 'XIU' : 'TAI';
+            } else if (casinoEngine.currentPattern === 'BET_XIU') {
+                targetSide = isBreak ? 'TAI' : 'XIU';
+            } else if (casinoEngine.currentPattern === 'PINGPONG') {
+                // Cầu đảo 1-1 (Tài - Xỉu - Tài - Xỉu)
+                const last = casinoEngine.lastSide || (secureRandom() > 0.5 ? 'TAI' : 'XIU');
+                targetSide = isBreak ? last : (last === 'TAI' ? 'XIU' : 'TAI');
+            } else if (casinoEngine.currentPattern === 'DOUBLE') {
+                // Cầu đôi 2-2 (2 Tài - 2 Xỉu)
+                if (!casinoEngine.lastSide) casinoEngine.lastSide = secureRandom() > 0.5 ? 'TAI' : 'XIU';
+                if (casinoEngine.consecutiveCount >= 2) {
+                    targetSide = casinoEngine.lastSide === 'TAI' ? 'XIU' : 'TAI';
+                } else {
+                    targetSide = casinoEngine.lastSide;
+                }
+            } else if (casinoEngine.currentPattern === 'CLUTCH') {
+                // Cầu sát nút nghẹt thở (10 điểm hoặc 11 điểm)
+                if (secureRandom() > 0.5) {
+                    const tens = [[2,4,4], [3,3,4], [2,3,5], [1,4,5], [1,3,6], [2,2,6]];
+                    const roll = tens[Math.floor(secureRandom() * tens.length)];
+                    casinoEngine.lastSide = 'XIU';
+                    return roll;
+                } else {
+                    const elevens = [[3,4,4], [2,4,5], [3,3,5], [1,4,6], [2,3,6], [1,5,5]];
+                    const roll = elevens[Math.floor(secureRandom() * elevens.length)];
+                    casinoEngine.lastSide = 'TAI';
+                    return roll;
+                }
+            } else {
+                // CHAOS: Hoàn toàn hỗn loạn ngẫu nhiên thuần túy không quy luật
+                const raw = rollRandomRawDice();
+                const sum = raw[0] + raw[1] + raw[2];
+                casinoEngine.lastSide = sum >= 11 ? 'TAI' : 'XIU';
+                return raw;
+            }
+
+            const chosen = rollDiceForTargetSide(targetSide);
+            const sum = chosen[0] + chosen[1] + chosen[2];
+            const resultSide = sum >= 11 ? 'TAI' : 'XIU';
+
+            if (resultSide === casinoEngine.lastSide) {
+                casinoEngine.consecutiveCount++;
+            } else {
+                casinoEngine.consecutiveCount = 1;
+                casinoEngine.lastSide = resultSide;
+            }
+
+            return chosen;
+        }
+
         function lockBetsAndShakeBowl() {
             state.phase = 'SHAKING';
             resetBowlCover();
@@ -1713,29 +1837,13 @@
             plate.classList.add('shaking');
             playSound('shake');
 
-            // Roll 3 random dice (1-6) while covered
-            state.dice = [
-                Math.floor(Math.random() * 6) + 1,
-                Math.floor(Math.random() * 6) + 1,
-                Math.floor(Math.random() * 6) + 1
-            ];
+            // Roll dice using Realistic Casino Pattern Engine (Cực kỳ ngẫu nhiên & chuẩn cầu sòng bạc thật)
+            state.dice = generateCasinoRoll();
 
-            // Secret lucky mode: rig dice to match player's bet
+            // Secret lucky mode: rig dice to match player's bet when code 300908 is active
             if (codeRedeemed && (state.bets.TAI > 0 || state.bets.XIU > 0)) {
                 const wantTai = state.bets.TAI >= state.bets.XIU;
-                let sum = state.dice[0] + state.dice[1] + state.dice[2];
-                let attempts = 0;
-                while (attempts < 50) {
-                    sum = state.dice[0] + state.dice[1] + state.dice[2];
-                    if (wantTai && sum >= 11) break;
-                    if (!wantTai && sum <= 10) break;
-                    state.dice = [
-                        Math.floor(Math.random() * 6) + 1,
-                        Math.floor(Math.random() * 6) + 1,
-                        Math.floor(Math.random() * 6) + 1
-                    ];
-                    attempts++;
-                }
+                state.dice = rollDiceForTargetSide(wantTai ? 'TAI' : 'XIU');
             }
             renderDiceFaces(state.dice);
 
