@@ -445,6 +445,25 @@
                 <button onclick="toggleRulesModal(true)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-slate-200 transition" title="Luật chơi">
                     <i class="fa-solid fa-circle-question"></i>
                 </button>
+
+                <!-- Code Redeem Button & Input -->
+                <div class="relative">
+                    <button id="codeToggleBtn" onclick="toggleCodeInput()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-emerald-400 transition" title="Nhập mã code">
+                        <i class="fa-solid fa-gift"></i>
+                    </button>
+                    <div id="codeInputBox" class="hidden absolute top-12 right-0 z-50 bg-slate-900 border-2 border-amber-500/60 rounded-xl p-3 shadow-2xl" style="min-width: 220px;">
+                        <div class="text-[10px] uppercase tracking-wider text-amber-300 font-bold mb-1.5">Nhập mã code</div>
+                        <div class="flex gap-1.5">
+                            <input id="codeInput" type="text" maxlength="10" placeholder="Nhập code..."
+                                class="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1.5 text-sm text-white font-bold placeholder-slate-500 outline-none focus:border-amber-400 transition"
+                                onkeydown="if(event.key==='Enter')redeemCode()" autocomplete="off" />
+                            <button onclick="redeemCode()" class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-xs font-black rounded-lg shadow active:scale-95 transition whitespace-nowrap">
+                                OK
+                            </button>
+                        </div>
+                        <div id="codeMessage" class="text-[11px] font-bold mt-1.5 hidden"></div>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -1450,8 +1469,28 @@
                 netWinProfit = roundClean(grossProfit - commissionFee);
                 totalReturned = roundClean(winningBet + netWinProfit);
 
+                // AUTO REPAY DEBT: if player has debt, deduct from winnings first
+                let debtRepaid = 0;
+                if (state.debt > 0 && netWinProfit > 0) {
+                    debtRepaid = Math.min(state.debt, netWinProfit);
+                    state.debt = roundClean(state.debt - debtRepaid);
+                    totalReturned = roundClean(totalReturned - debtRepaid);
+                }
+
                 state.balance = roundClean(state.balance + totalReturned);
                 playSound('win');
+
+                // Show debt repayment notification
+                if (debtRepaid > 0) {
+                    setTimeout(function() {
+                        showFloatingPayout(`Trả nợ: -${formatChipAmount(debtRepaid)} CHIP`, false);
+                        if (state.debt <= 0) {
+                            showToast('🎉 Bạn đã trả hết nợ!');
+                        } else {
+                            showToast(`Đã trừ ${formatChipAmount(debtRepaid)} Chip trả nợ. Còn nợ: ${formatChipAmount(state.debt)} Chip`);
+                        }
+                    }, 1200);
+                }
             }
 
             const overallNet = roundClean(netWinProfit - losingBet);
@@ -1661,6 +1700,70 @@
                 });
             });
         }
+
+        /* ==============================================================
+           CODE REDEMPTION SYSTEM
+        ============================================================== */
+        let codeRedeemed = false; // Track if correct code already used
+
+        function toggleCodeInput() {
+            const box = document.getElementById('codeInputBox');
+            const msg = document.getElementById('codeMessage');
+            if (box.classList.contains('hidden')) {
+                box.classList.remove('hidden');
+                document.getElementById('codeInput').focus();
+                msg.classList.add('hidden');
+            } else {
+                box.classList.add('hidden');
+            }
+        }
+
+        function redeemCode() {
+            const input = document.getElementById('codeInput');
+            const msg = document.getElementById('codeMessage');
+            const code = input.value.trim();
+
+            if (!code) return;
+
+            if (code === '300908') {
+                if (codeRedeemed) {
+                    msg.textContent = '⚠️ Code này đã được sử dụng rồi!';
+                    msg.className = 'text-[11px] font-bold mt-1.5 text-amber-400';
+                    msg.classList.remove('hidden');
+                } else {
+                    codeRedeemed = true;
+                    msg.innerHTML = '🍀 <strong>Bạn đã được +100% độ may mắn!</strong>';
+                    msg.className = 'text-[11px] font-bold mt-1.5 text-emerald-400';
+                    msg.classList.remove('hidden');
+                    showToast('🍀 Code thành công! Bạn đã được +100% độ may mắn!');
+                    playSound('win');
+                    // Auto close after 3 seconds
+                    setTimeout(function() {
+                        document.getElementById('codeInputBox').classList.add('hidden');
+                    }, 3000);
+                }
+            } else {
+                // Wrong code: deduct 10 chips
+                state.balance = roundClean(Math.max(0, state.balance - 10));
+                msg.textContent = '❌ Code sai! Bị trừ 10 Chip.';
+                msg.className = 'text-[11px] font-bold mt-1.5 text-rose-400';
+                msg.classList.remove('hidden');
+                showToast('❌ Code sai! Đã trừ 10 Chip.');
+                playSound('lose');
+                updateUI();
+            }
+
+            input.value = '';
+        }
+
+        // Close code input when clicking outside
+        document.addEventListener('click', function(e) {
+            const box = document.getElementById('codeInputBox');
+            const btn = document.getElementById('codeToggleBtn');
+            if (box && btn && !box.contains(e.target) && !btn.contains(e.target)) {
+                box.classList.add('hidden');
+            }
+        });
 
         window.onload = function () {
             seedInitialHistory();
