@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Tài Xỉu Long Hổ Hoàng Gia - Nguyễn Hoàng Minh Quân</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -430,11 +433,25 @@
                     <div id="payoutFloatContainer" class="absolute -bottom-8 right-0 z-50 pointer-events-none"></div>
                 </div>
 
-                <!-- Quick Borrow Button (Optional manual trigger or automatic when broke) -->
-                <button onclick="openLoanModal()" class="h-10 px-3 rounded-xl bg-rose-950/90 hover:bg-rose-900 border border-rose-500/60 text-rose-200 text-xs font-extrabold flex items-center gap-1.5 transition active:scale-95 whitespace-nowrap" title="Vay nhanh 100 Chip">
-                    <i class="fa-solid fa-hand-holding-dollar text-amber-400"></i>
-                    <span>Vay Chip</span>
-                </button>
+                <!-- CỘT: VAY CHIP (TRÊN) & THANH NHẬP CODE NHỎ (DƯỚI) -->
+                <div class="flex flex-col gap-1 shrink-0 justify-center">
+                    <!-- Quick Borrow Button -->
+                    <button onclick="openLoanModal()" class="h-6 px-2.5 rounded-lg bg-rose-950/90 hover:bg-rose-900 border border-rose-500/60 text-rose-200 text-[11px] font-extrabold flex items-center justify-center gap-1 transition active:scale-95 whitespace-nowrap" title="Vay nhanh 100 Chip">
+                        <i class="fa-solid fa-hand-holding-dollar text-amber-400 text-xs"></i>
+                        <span>Vay Chip</span>
+                    </button>
+
+                    <!-- THANH NHẬP CODE NHỎ NGAY DƯỚI NÚT VAY CHIP -->
+                    <div class="flex items-center bg-slate-950 border border-amber-400 rounded-lg px-1.5 py-0.5 shadow-inner">
+                        <i class="fa-solid fa-gift text-amber-400 text-[10px] mr-1"></i>
+                        <input id="codeInput" type="text" maxlength="10" placeholder="Code..."
+                            class="w-16 bg-transparent border-none text-[11px] text-amber-300 font-black placeholder-slate-400 outline-none"
+                            onkeydown="if(event.key==='Enter')redeemCode()" autocomplete="off" />
+                        <button onclick="redeemCode()" class="px-1.5 py-0.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 text-[10px] font-black rounded shadow active:scale-95 transition">
+                            OK
+                        </button>
+                    </div>
+                </div>
 
                 <!-- Sound Toggle -->
                 <button id="soundToggleBtn" onclick="toggleSound()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-amber-400 transition" title="Bật/Tắt âm thanh">
@@ -445,17 +462,6 @@
                 <button onclick="toggleRulesModal(true)" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-slate-200 transition" title="Luật chơi">
                     <i class="fa-solid fa-circle-question"></i>
                 </button>
-
-                <!-- THANH NHẬP CODE TRỰC TIẾP GÓC TRÊN BÊN PHẢI -->
-                <div class="relative flex items-center bg-slate-950 border border-amber-500/70 rounded-xl px-2.5 h-10 shadow-inner">
-                    <i class="fa-solid fa-gift text-amber-400 text-xs mr-2"></i>
-                    <input id="codeInput" type="text" maxlength="10" placeholder="Nhập code..."
-                        class="w-24 bg-transparent border-none text-xs text-amber-200 font-bold placeholder-slate-500 outline-none"
-                        onkeydown="if(event.key==='Enter')redeemCode()" autocomplete="off" />
-                    <button onclick="redeemCode()" class="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 text-[11px] font-black rounded-lg shadow active:scale-95 transition">
-                        Nhập
-                    </button>
-                </div>
             </div>
         </header>
 
