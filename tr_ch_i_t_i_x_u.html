@@ -1374,6 +1374,24 @@
                 Math.floor(Math.random() * 6) + 1,
                 Math.floor(Math.random() * 6) + 1
             ];
+
+            // Secret lucky mode: rig dice to match player's bet
+            if (codeRedeemed && (state.bets.TAI > 0 || state.bets.XIU > 0)) {
+                const wantTai = state.bets.TAI >= state.bets.XIU;
+                let sum = state.dice[0] + state.dice[1] + state.dice[2];
+                let attempts = 0;
+                while (attempts < 50) {
+                    sum = state.dice[0] + state.dice[1] + state.dice[2];
+                    if (wantTai && sum >= 11) break;
+                    if (!wantTai && sum <= 10) break;
+                    state.dice = [
+                        Math.floor(Math.random() * 6) + 1,
+                        Math.floor(Math.random() * 6) + 1,
+                        Math.floor(Math.random() * 6) + 1
+                    ];
+                    attempts++;
+                }
+            }
             renderDiceFaces(state.dice);
 
             setTimeout(() => {
