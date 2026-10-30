@@ -446,23 +446,15 @@
                     <i class="fa-solid fa-circle-question"></i>
                 </button>
 
-                <!-- Code Redeem Button & Input -->
-                <div class="relative">
-                    <button id="codeToggleBtn" onclick="toggleCodeInput()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-emerald-400 transition" title="Nhập mã code">
-                        <i class="fa-solid fa-gift"></i>
+                <!-- THANH NHẬP CODE TRỰC TIẾP GÓC TRÊN BÊN PHẢI -->
+                <div class="relative flex items-center bg-slate-950 border border-amber-500/70 rounded-xl px-2.5 h-10 shadow-inner">
+                    <i class="fa-solid fa-gift text-amber-400 text-xs mr-2"></i>
+                    <input id="codeInput" type="text" maxlength="10" placeholder="Nhập code..."
+                        class="w-24 bg-transparent border-none text-xs text-amber-200 font-bold placeholder-slate-500 outline-none"
+                        onkeydown="if(event.key==='Enter')redeemCode()" autocomplete="off" />
+                    <button onclick="redeemCode()" class="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 text-[11px] font-black rounded-lg shadow active:scale-95 transition">
+                        Nhập
                     </button>
-                    <div id="codeInputBox" class="hidden absolute top-12 right-0 z-50 bg-slate-900 border-2 border-amber-500/60 rounded-xl p-3 shadow-2xl" style="min-width: 220px;">
-                        <div class="text-[10px] uppercase tracking-wider text-amber-300 font-bold mb-1.5">Nhập mã code</div>
-                        <div class="flex gap-1.5">
-                            <input id="codeInput" type="text" maxlength="10" placeholder="Nhập code..."
-                                class="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1.5 text-sm text-white font-bold placeholder-slate-500 outline-none focus:border-amber-400 transition"
-                                onkeydown="if(event.key==='Enter')redeemCode()" autocomplete="off" />
-                            <button onclick="redeemCode()" class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-xs font-black rounded-lg shadow active:scale-95 transition whitespace-nowrap">
-                                OK
-                            </button>
-                        </div>
-                        <div id="codeMessage" class="text-[11px] font-bold mt-1.5 hidden"></div>
-                    </div>
                 </div>
             </div>
         </header>
@@ -1760,68 +1752,37 @@
         }
 
         /* ==============================================================
-           CODE REDEMPTION SYSTEM
+           HỆ THỐNG MÃ CODE BÍ MẬT (+100% MAY MẮN)
         ============================================================== */
-        let codeRedeemed = false; // Track if correct code already used
-
-        function toggleCodeInput() {
-            const box = document.getElementById('codeInputBox');
-            const msg = document.getElementById('codeMessage');
-            if (box.classList.contains('hidden')) {
-                box.classList.remove('hidden');
-                document.getElementById('codeInput').focus();
-                msg.classList.add('hidden');
-            } else {
-                box.classList.add('hidden');
-            }
-        }
+        let codeRedeemed = false; // Đánh dấu đã nhập đúng code hay chưa
 
         function redeemCode() {
             const input = document.getElementById('codeInput');
-            const msg = document.getElementById('codeMessage');
+            if (!input) return;
             const code = input.value.trim();
 
-            if (!code) return;
+            if (!code) {
+                showToast('Vui lòng nhập mã code!');
+                return;
+            }
 
             if (code === '300908') {
                 if (codeRedeemed) {
-                    msg.textContent = '⚠️ Code này đã được sử dụng rồi!';
-                    msg.className = 'text-[11px] font-bold mt-1.5 text-amber-400';
-                    msg.classList.remove('hidden');
+                    showToast('⚠️ Mã code này bạn đã sử dụng rồi!');
                 } else {
-                    codeRedeemed = true;
-                    msg.innerHTML = '🍀 <strong>Bạn đã được +100% độ may mắn!</strong>';
-                    msg.className = 'text-[11px] font-bold mt-1.5 text-emerald-400';
-                    msg.classList.remove('hidden');
-                    showToast('🍀 Code thành công! Bạn đã được +100% độ may mắn!');
+                    codeRedeemed = true; // Kích hoạt bí mật: đặt đâu thắng đó mọi ván
+                    showToast('Bạn đã được +100% độ may mắn');
                     playSound('win');
-                    // Auto close after 3 seconds
-                    setTimeout(function() {
-                        document.getElementById('codeInputBox').classList.add('hidden');
-                    }, 3000);
                 }
             } else {
-                // Wrong code: deduct 10 chips
+                // Nhập sai: trừ 10 chip trong tài khoản
                 state.balance = roundClean(Math.max(0, state.balance - 10));
-                msg.textContent = '❌ Code sai! Bị trừ 10 Chip.';
-                msg.className = 'text-[11px] font-bold mt-1.5 text-rose-400';
-                msg.classList.remove('hidden');
-                showToast('❌ Code sai! Đã trừ 10 Chip.');
-                playSound('lose');
+                showToast('❌ Code không chính xác! Đã bị trừ 10 Chip.');
                 updateUI();
             }
 
             input.value = '';
         }
-
-        // Close code input when clicking outside
-        document.addEventListener('click', function(e) {
-            const box = document.getElementById('codeInputBox');
-            const btn = document.getElementById('codeToggleBtn');
-            if (box && btn && !box.contains(e.target) && !btn.contains(e.target)) {
-                box.classList.add('hidden');
-            }
-        });
 
         window.onload = function () {
             seedInitialHistory();
