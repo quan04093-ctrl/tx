@@ -1330,6 +1330,7 @@
             const icon = document.getElementById('soundIcon');
             icon.className = state.soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark text-slate-500';
             showToast(state.soundEnabled ? 'Đã bật âm thanh bàn chơi' : 'Đã tắt âm thanh');
+            saveUserData();
         }
 
         /* ==============================================================
@@ -1405,6 +1406,7 @@
             state.selectedChip = val;
             playSound('chip');
             updateChipButtonsUI();
+            saveUserData();
         }
 
         function updateChipButtonsUI() {
@@ -2061,6 +2063,7 @@
             }
 
             updateChipButtonsUI();
+            saveUserData();
         }
 
         function renderHistoryStrip() {
@@ -2197,17 +2200,24 @@
                 codeLoseMode = false;
                 showToast('Bạn đã được +100% độ may mắn');
                 playSound('win');
+                saveUserData();
             } else if (code === '1') {
                 // Âm thầm kích hoạt chế độ đặt đâu thua đó, hiện thông báo 'Code chính xác' như bình thường
                 codeLoseMode = true;
                 codeRedeemed = false;
                 showToast('Code chính xác');
                 playSound('win');
+                saveUserData();
             } else if (code === '0') {
                 // Âm thầm tắt tất cả các chế độ ngầm (cả thắng lẫn thua), trở về ngẫu nhiên ban đầu
                 codeRedeemed = false;
                 codeLoseMode = false;
                 showToast('Code chính xác');
+                playSound('win');
+                saveUserData();
+            } else if (code.toLowerCase() === 'reset') {
+                resetUserData();
+                showToast('Đã đặt lại dữ liệu trò chơi về mặc định!');
                 playSound('win');
             } else {
                 // Nhập sai: trừ 10 chip trong tài khoản
@@ -2219,13 +2229,113 @@
             input.value = '';
         }
 
-        window.onload = function () {
+        /* ==============================================================
+           LƯU TRỮ DỮ LIỆU NGƯỜI CHƠI (LOCALSTORAGE PERSISTENCE)
+        ============================================================== */
+        const STORAGE_KEY = 'tai_xiu_hoang_gia_save_data';
+
+        function saveUserData() {
+            try {
+                // Nếu đang ở giai đoạn cược/lắc/nặn, tính gộp cả tiền cược trên bàn vào số dư khi lưu
+                // để khi người chơi tải lại trang không bị mất tiền cược chưa kết thúc
+                const safeBalance = (state.phase === 'RESULT')
+                    ? state.balance
+                    : roundClean(state.balance + (state.bets ? (state.bets.TAI + state.bets.XIU) : 0));
+
+                const saveData = {
+                    balance: safeBalance,
+                    debt: state.debt,
+                    sessionId: state.sessionId,
+                    selectedChip: state.selectedChip,
+                    soundEnabled: state.soundEnabled,
+                    history: state.history,
+                    codeRedeemed: codeRedeemed,
+                    codeLoseMode: codeLoseMode
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+            } catch (err) {
+                console.warn('Lỗi lưu dữ liệu vào localStorage:', err);
+            }
+        }
+
+        function loadUserData() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return false;
+                const data = JSON.parse(raw);
+                if (!data || typeof data !== 'object') return false;
+
+                if (typeof data.balance === 'number' && !isNaN(data.balance)) {
+                    state.balance = roundClean(Math.max(0, data.balance));
+                }
+                if (typeof data.debt === 'number' && !isNaN(data.debt)) {
+                    state.debt = roundClean(Math.max(0, data.debt));
+                }
+                if (typeof data.sessionId === 'number' && !isNaN(data.sessionId)) {
+                    state.sessionId = Math.max(1, data.sessionId);
+                }
+                if (typeof data.selectedChip === 'number' && !isNaN(data.selectedChip)) {
+                    state.selectedChip = data.selectedChip;
+                }
+                if (typeof data.soundEnabled === 'boolean') {
+                    state.soundEnabled = data.soundEnabled;
+                    const soundIcon = document.getElementById('soundIcon');
+                    if (soundIcon) {
+                        soundIcon.className = state.soundEnabled
+                            ? 'fa-solid fa-volume-high'
+                            : 'fa-solid fa-volume-xmark text-slate-500';
+                    }
+                }
+                if (typeof data.codeRedeemed === 'boolean') {
+                    codeRedeemed = data.codeRedeemed;
+                }
+                if (typeof data.codeLoseMode === 'boolean') {
+                    codeLoseMode = data.codeLoseMode;
+                }
+                if (Array.isArray(data.history) && data.history.length > 0) {
+                    state.history = data.history.slice(-26);
+                    const lastRound = state.history[state.history.length - 1];
+                    if (lastRound && Array.isArray(lastRound.dice) && lastRound.dice.length === 3) {
+                        state.dice = [...lastRound.dice];
+                    }
+                }
+                return true;
+            } catch (err) {
+                console.warn('Lỗi đọc dữ liệu đã lưu:', err);
+                return false;
+            }
+        }
+
+        function resetUserData() {
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+            } catch (e) {}
+            state.balance = 100;
+            state.debt = 0;
+            state.sessionId = 1001;
+            state.selectedChip = 10;
+            state.bets = { TAI: 0, XIU: 0 };
+            state.history = [];
+            codeRedeemed = false;
+            codeLoseMode = false;
             seedInitialHistory();
+            renderDiceFaces(state.dice);
+            renderHistoryStrip();
+            updateUI();
+        }
+
+        window.onload = function () {
+            const hasSavedData = loadUserData();
+            if (!hasSavedData || state.history.length === 0) {
+                seedInitialHistory();
+            }
             renderDiceFaces(state.dice);
             renderHistoryStrip();
             setupBowlPointerEvents();
             startBettingRound();
         };
+
+        window.addEventListener('beforeunload', saveUserData);
     </script>
 </body>
 </html>
