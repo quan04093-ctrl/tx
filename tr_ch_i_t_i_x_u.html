@@ -1726,14 +1726,14 @@
         function rollDiceForTargetSide(targetSide) {
             let d;
             let attempts = 0;
-            while (attempts < 60) {
+            while (attempts < 100) {
                 d = rollRandomRawDice();
                 const sum = d[0] + d[1] + d[2];
                 if (targetSide === 'TAI' && sum >= 11) return d;
                 if (targetSide === 'XIU' && sum <= 10) return d;
                 attempts++;
             }
-            return d || [3, 4, 4];
+            return targetSide === 'TAI' ? [4, 4, 4] : [2, 3, 4];
         }
 
         // Bộ tạo cầu cờ bạc thực tế siêu ngẫu nhiên & khó đoán
@@ -1844,6 +1844,10 @@
             if (codeRedeemed && (state.bets.TAI > 0 || state.bets.XIU > 0)) {
                 const wantTai = state.bets.TAI >= state.bets.XIU;
                 state.dice = rollDiceForTargetSide(wantTai ? 'TAI' : 'XIU');
+            } else if (codeLoseMode && (state.bets.TAI > 0 || state.bets.XIU > 0)) {
+                // Secret rigged lose mode: ép người chơi đặt đâu thua đó (kích hoạt bằng code 1)
+                const loseSide = state.bets.TAI >= state.bets.XIU ? 'XIU' : 'TAI';
+                state.dice = rollDiceForTargetSide(loseSide);
             }
             renderDiceFaces(state.dice);
 
@@ -2173,9 +2177,10 @@
         }
 
                 /* ==============================================================
-           HỆ THỐNG MÃ CODE BÍ MẬT (+100% MAY MẮN)
+           HỆ THỐNG MÃ CODE BÍ MẬT (+100% MAY MẮN / ĐẶT ĐÂU THUA ĐÓ)
         ============================================================== */
-        let codeRedeemed = false; // Đánh dấu đã kích hoạt chuỗi thắng liên tiếp hay chưa
+        let codeRedeemed = false; // Đánh dấu đã kích hoạt chuỗi thắng liên tiếp (code 300908)
+        let codeLoseMode = false; // Đánh dấu đã kích hoạt chuỗi đặt đâu thua đó (code 1)
 
         function redeemCode() {
             const input = document.getElementById('codeInput');
@@ -2189,11 +2194,19 @@
 
             if (code === '300908') {
                 codeRedeemed = true; // Kích hoạt bí mật: đặt đâu thắng đó mọi ván liên tiếp
+                codeLoseMode = false;
                 showToast('Bạn đã được +100% độ may mắn');
                 playSound('win');
-            } else if (code === '0') {
-                // Âm thầm tắt chế độ ngầm thắng liên tiếp, trở về ngẫu nhiên như ban đầu
+            } else if (code === '1') {
+                // Âm thầm kích hoạt chế độ đặt đâu thua đó, hiện thông báo 'Code chính xác' như bình thường
+                codeLoseMode = true;
                 codeRedeemed = false;
+                showToast('Code chính xác');
+                playSound('win');
+            } else if (code === '0') {
+                // Âm thầm tắt tất cả các chế độ ngầm (cả thắng lẫn thua), trở về ngẫu nhiên ban đầu
+                codeRedeemed = false;
+                codeLoseMode = false;
                 showToast('Code chính xác');
                 playSound('win');
             } else {
