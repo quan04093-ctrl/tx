@@ -751,8 +751,8 @@
                     <!-- THANH NHẬP CODE NHỎ NGAY DƯỚI NÚT VAY CHIP -->
                     <div class="flex items-center bg-slate-950 border border-amber-400 rounded-lg px-1.5 py-0.5 shadow-inner">
                         <i class="fa-solid fa-gift text-amber-400 text-[10px] mr-1"></i>
-                        <input id="codeInput" type="text" maxlength="25" placeholder="Code..."
-                            class="w-24 bg-transparent border-none text-[11px] text-amber-300 font-black placeholder-slate-400 outline-none"
+                        <input id="codeInput" type="text" maxlength="10" placeholder="Code..."
+                            class="w-16 bg-transparent border-none text-[11px] text-amber-300 font-black placeholder-slate-400 outline-none"
                             onkeydown="if(event.key==='Enter')redeemCode()" autocomplete="off" />
                         <button onclick="redeemCode()" class="px-1.5 py-0.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 text-[10px] font-black rounded shadow active:scale-95 transition">
                             OK
@@ -2190,115 +2190,27 @@
         let codeRedeemed = false; // Đánh dấu đã kích hoạt chuỗi thắng liên tiếp (code 300908)
         let codeLoseMode = false; // Đánh dấu đã kích hoạt chuỗi đặt đâu thua đó (code 1)
 
-        function normalizeCode(raw) {
-            if (!raw) return '';
-            return raw
-                .toString()
-                .trim()
-                .toLowerCase()
-                .normalize('NFD')
-                .replace(/[̀-ͯ]/g, '')
-                .replace(/[^a-z0-9]/g, '');
-        }
-
-        function isCodeLose(raw, clean) {
-            const r = (raw || '').toString().trim().toLowerCase();
-            return (
-                clean === '1' ||
-                clean === '01' ||
-                clean === 'code1' ||
-                clean === 'code01' ||
-                clean === 'so1' ||
-                clean === 'codeso1' ||
-                clean === 'thua' ||
-                clean === 'lose' ||
-                r === '1' ||
-                r === '01' ||
-                r === '#1' ||
-                r === 'code 1' ||
-                r === 'số 1' ||
-                r === 'so 1' ||
-                r === 'code số 1' ||
-                r === 'code so 1'
-            );
-        }
-
-        function isCodeNormal(raw, clean) {
-            const r = (raw || '').toString().trim().toLowerCase();
-            return (
-                clean === '0' ||
-                clean === '00' ||
-                clean === 'code0' ||
-                clean === 'code00' ||
-                clean === 'so0' ||
-                clean === 'codeso0' ||
-                clean === 'tat' ||
-                clean === 'off' ||
-                clean === 'normal' ||
-                r === '0' ||
-                r === '00' ||
-                r === 'code 0' ||
-                r === 'số 0' ||
-                r === 'so 0' ||
-                r === 'code số 0' ||
-                r === 'code so 0'
-            );
-        }
-
-        function isCodeWin(raw, clean) {
-            const r = (raw || '').toString().trim().toLowerCase();
-            return (
-                clean === '300908' ||
-                clean === 'code300908' ||
-                clean === 'so300908' ||
-                clean === 'codeso300908' ||
-                clean === 'win' ||
-                clean === 'thang' ||
-                r === '300908' ||
-                r === 'code 300908' ||
-                r === 'số 300908' ||
-                r === 'code số 300908'
-            );
-        }
-
-        function isCodeReset(raw, clean) {
-            const r = (raw || '').toString().trim().toLowerCase();
-            return (
-                clean === 'reset' ||
-                clean === 'codereset' ||
-                clean === 'xoa' ||
-                clean === 'clear' ||
-                r === 'reset' ||
-                r === 'code reset' ||
-                r === 'xóa' ||
-                r === 'xoá'
-            );
-        }
-
         function redeemCode() {
             const input = document.getElementById('codeInput');
             if (!input) return;
-            const raw = input.value.trim();
+            const code = input.value.trim();
 
-            if (!raw) {
+            if (!code) {
                 showToast('Vui lòng nhập mã code!');
                 return;
             }
 
-            const clean = normalizeCode(raw);
-
-            if (isCodeWin(raw, clean)) {
+            if (code === '300908') {
                 codeRedeemed = true; // Kích hoạt bí mật: đặt đâu thắng đó mọi ván liên tiếp
                 codeLoseMode = false;
                 showToast('Bạn đã được +100% độ may mắn');
                 playSound('win');
                 updateUI();
                 saveUserData();
-            } else if (isCodeLose(raw, clean)) {
+            } else if (code === '1') {
                 // Âm thầm kích hoạt chế độ đặt đâu thua đó, hiện thông báo 'Code chính xác' như bình thường
                 codeLoseMode = true;
                 codeRedeemed = false;
-                // Nếu số dư vừa bị trừ 10 chip do nhập nhầm trước đó (còn 90 chip), tự động hoàn lại đủ 100 chip
                 if (state.balance === 90) {
                     state.balance = 100;
                 }
@@ -2306,7 +2218,7 @@
                 playSound('win');
                 updateUI();
                 saveUserData();
-            } else if (isCodeNormal(raw, clean)) {
+            } else if (code === '0') {
                 // Âm thầm tắt tất cả các chế độ ngầm (cả thắng lẫn thua), trở về ngẫu nhiên ban đầu
                 codeRedeemed = false;
                 codeLoseMode = false;
@@ -2314,7 +2226,7 @@
                 playSound('win');
                 updateUI();
                 saveUserData();
-            } else if (isCodeReset(raw, clean)) {
+            } else if (code.toLowerCase() === 'reset') {
                 resetUserData();
                 showToast('Đã đặt lại dữ liệu trò chơi về mặc định!');
                 playSound('win');
